@@ -1,2 +1,6 @@
 # practica11
-#Consultas avanzadas &lt;br\> Integrantes &lt;\br> *A *B *C
+## Consultas avanzadas
+Integrantes
+  *Edgar Quiroz Castañeda 418003808 
+  *Silvia ? 
+  *Narciso Isaac Eugenio Aceves 315581461
