@@ -81,7 +81,18 @@ SELECT SUM(sueldo) gastos, COUNT(sueldo) empleados
     WHERE criterio = 'Considerado';
 
 
---Productos 
+--Obtiene la lista de teléfonos de los departamentos de todas las sucursales con
+-- un departamento de farmacia ó vinos y licores.
+SELECT *
+    FROM (SELECT DISTINCT id_suc id_sucursal
+        FROM (
+            SELECT id_suc, DECODE (id_tipo, 'A', 'Considerado',
+                                            'VYL', 'Considerado',
+                                  'noConsiderado') criterio
+                FROM tener_departamento
+            )
+        WHERE criterio = 'Considerado'
+    ) NATURAL JOIN telefono_sucursal;
 
 
 
@@ -155,10 +166,53 @@ SELECT presentacion, cantidad, precio_máximo, marca, 'Agua embotellada' as desc
     IN (marca_agua)
     );
 
-
 --Datos de los clientes con total de dinero gastado mayor a X, registrados en 
 --CDMX o Chihuahua o  Morelos y que son mayores de 20 años
+SELECT id_cliente,nombre,apellido_p,apellido_m,curp,dinero_gastado
+    FROM Persona 
+         NATURAL JOIN
+         (
+            (SELECT id_cliente, dinero_gastado
+                FROM ((SELECT num_tarjeta, SUM(importe) dinero_gastado
+                        FROM metodo_pago
+                        GROUP BY num_tarjeta)
+                        NATURAL JOIN
+                        tarjeta
+                     )
+            ) NATURAL JOIN
+            (SELECT curp, id_cliente, fecha_nac
+                FROM (
+                    (SELECT curp, id_cliente, (
+                            CASE 
+                                WHEN REGEXP_LIKE (curp, '^.{11}CX.{5}') THEN 'ok'
+                                WHEN REGEXP_LIKE (curp, '^.{11}CH.{5}') THEN 'ok'
+                                WHEN REGEXP_LIKE (curp, '^.{11}MO.{5}') THEN 'ok' 
+                                ELSE 'no'
+                            END
+                        ) tipo_cliente
+                        FROM cliente
+                    ) 
+                    NATURAL JOIN 
+                    (SELECT curp, fecha_nac
+                        FROM persona
+                        WHERE (EXTRACT(YEAR FROM CURRENT_DATE) - EXTRACT(YEAR FROM fecha_nac)) > 20
+                    )
+                )
+                WHERE fecha_nac IS NOT NULL AND tipo_cliente = 'ok'
+            )
+        );
 
 
 --Sueldo promedio de todos los CAJEROS por SEXO y sucursal
+SELECT id_suc, sexo, AVG(sueldo) promedio
+    FROM(SELECT id_suc, sueldo,(
+                                CASE 
+                                    WHEN REGEXP_LIKE (curp, '^.{10}H.{7}') THEN 'ok'
+                                    WHEN REGEXP_LIKE (curp, '^.{10}M.{7}') THEN 'ok' 
+                                    ELSE 'no'
+                                END
+                            ) as sexo
+        FROM (sueldo NATURAL JOIN (empleado NATURAL JOIN trabajar))
+    )
+    GROUP BY id_suc, sexo;
 
